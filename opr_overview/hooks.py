@@ -1,0 +1,6 @@
+app_name = "opr_overview"
+app_title = "OPR Overview"
+app_publisher = "Iftikhar Hussain Syed"
+app_description = "OPR Production & Logistics Overview report"
+app_email = "iftikhar.hussain@cvshvac.com"
+app_license = "Proprietary"
