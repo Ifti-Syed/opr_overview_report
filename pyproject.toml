@@ -3,7 +3,7 @@ name = "opr_overview"
 authors = [
     { name = "Iftikhar Hussain Syed", email = "iftikhar.hussain@cvshvac.com"}
 ]
-description = "OPR Production & Logistics Overview report"
+description = "OPR Production and Logistics Overview report"
 requires-python = ">=3.10"
 readme = "README.md"
 license = { file = "license.txt" }

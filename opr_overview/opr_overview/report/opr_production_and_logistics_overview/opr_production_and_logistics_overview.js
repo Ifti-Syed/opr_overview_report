@@ -68,7 +68,7 @@ const OPR_SUB_GROUPS = [
 	{ label: "", fields: ["remaining_value"] },
 ];
 
-frappe.query_reports["OPR Production & Logistics Overview"] = {
+frappe.query_reports["OPR Production and Logistics Overview"] = {
 	filters: [
 		{
 			fieldname: "from_date",

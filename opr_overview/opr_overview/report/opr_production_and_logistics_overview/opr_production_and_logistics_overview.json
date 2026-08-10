@@ -11,11 +11,11 @@
  "is_standard": "Yes",
  "letter_head": null,
  "module": "OPR Overview",
- "name": "OPR Production & Logistics Overview",
+ "name": "OPR Production and Logistics Overview",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "Order Processing Request",
- "report_name": "OPR Production & Logistics Overview",
+ "report_name": "OPR Production and Logistics Overview",
  "report_type": "Script Report",
  "roles": [
   {"role": "System Manager"},
