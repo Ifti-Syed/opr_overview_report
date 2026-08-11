@@ -4,13 +4,21 @@ import frappe
 def execute(filters=None):
 	filters = filters or {}
 
-	columns = get_columns()
-	data = get_data(filters)
+	group_by = filters.get("group_by") or "Project"
+	if group_by not in ("Project", "Customer"):
+		group_by = "Project"
+
+	view_mode = filters.get("view_mode") or "Summary + Details"
+	if view_mode not in ("Summary + Details", "Summary Only", "Details Only"):
+		view_mode = "Summary + Details"
+
+	columns = get_columns(group_by)
+	data = get_data(filters, group_by, view_mode)
 
 	return columns, data
 
 
-def get_data(filters):
+def get_data(filters, group_by, view_mode):
 
 	# =========================================================
 	# FILTER VALUES
@@ -28,12 +36,16 @@ def get_data(filters):
 		"sales_person": filters.get("sales_person") or "",
 		"product_type": filters.get("product_type") or "",
 		"region": filters.get("region") or "",
+		"workflow_state": filters.get("workflow_state") or "",
 
 		"active_only": 1 if filters.get("active_only") else 0,
 		"pending_only": 1 if filters.get("pending_only") else 0,
 
-		"excluded_customer": "Central Ventilation Systems Co LLC",
+		"excluded_customer": "Central Ventilation Systems Co. LLC",
 	}
+
+	# Sort order follows whichever grouping is selected.
+	group_sort_column = "opr.customer_name" if group_by == "Customer" else "opr.project"
 
 	# =========================================================
 	# DATABASE QUERY
@@ -45,7 +57,7 @@ def get_data(filters):
 	# =========================================================
 
 	opr_rows = frappe.db.sql(
-		"""
+		f"""
 		SELECT
 			opr.name AS opr_name,
 
@@ -55,9 +67,19 @@ def get_data(filters):
 			) AS project,
 
 			COALESCE(
+				NULLIF(TRIM(opr.customer_name), ''),
+				'Customer Not Specified'
+			) AS customer_name,
+
+			COALESCE(
 				NULLIF(TRIM(proj.region), ''),
 				'Not Specified'
 			) AS region,
+
+			COALESCE(
+				NULLIF(TRIM(opr.workflow_state), ''),
+				'Not Specified'
+			) AS workflow_state,
 
 			COALESCE(
 				NULLIF(TRIM(opr.product_type1), ''),
@@ -171,6 +193,11 @@ def get_data(filters):
 			)
 
 			AND (
+				%(workflow_state)s = ''
+				OR COALESCE(opr.workflow_state, '') = %(workflow_state)s
+			)
+
+			AND (
 				%(active_only)s = 0
 				OR COALESCE(opr.workflow_state, '') NOT IN (
 					'Completed',
@@ -216,16 +243,7 @@ def get_data(filters):
 			)
 
 		ORDER BY
-			COALESCE(
-				NULLIF(TRIM(opr.project), ''),
-				'Project Not Specified'
-			) ASC,
-
-			COALESCE(
-				NULLIF(TRIM(proj.region), ''),
-				'Not Specified'
-			) ASC,
-
+			COALESCE(NULLIF(TRIM({group_sort_column}), ''), 'Not Specified') ASC,
 			opr.name ASC
 		""",
 		values,
@@ -257,24 +275,24 @@ def get_data(filters):
 	]
 
 	# =========================================================
-	# GROUP OPRS BY PROJECT
+	# GROUP RECORDS (by Project or Customer, per group_by)
 	# =========================================================
 
-	project_groups = {}
-	project_order = []
+	grouped_rows = {}
+	group_order = []
 
 	for opr in opr_rows:
 
-		project_name = opr.get("project")
+		if group_by == "Customer":
+			group_name = opr.get("customer_name") or "Customer Not Specified"
+		else:
+			group_name = opr.get("project") or "Project Not Specified"
 
-		if not project_name:
-			project_name = "Project Not Specified"
+		if group_name not in grouped_rows:
+			grouped_rows[group_name] = []
+			group_order.append(group_name)
 
-		if project_name not in project_groups:
-			project_groups[project_name] = []
-			project_order.append(project_name)
-
-		project_groups[project_name].append(opr)
+		grouped_rows[group_name].append(opr)
 
 	# =========================================================
 	# INITIALISE TOTALS
@@ -285,92 +303,120 @@ def get_data(filters):
 	rows = []
 
 	# =========================================================
-	# BUILD PROJECT TOTAL ROW + OPR DETAIL ROWS
+	# BUILD GROUP SUMMARY ROW + OPR DETAIL ROWS
 	# =========================================================
 
-	for project_name in project_order:
+	for group_name in group_order:
 
-		project_total = {fieldname: 0.0 for fieldname in numeric_fields}
+		group_total = {fieldname: 0.0 for fieldname in numeric_fields}
 
-		project_oprs = project_groups.get(project_name) or []
+		group_oprs = grouped_rows.get(group_name) or []
 
-		project_regions = []
+		group_regions = []
+		group_workflow_states = []
 
 		# -----------------------------------------------------
-		# CALCULATE PROJECT TOTALS
+		# CALCULATE GROUP TOTALS
 		# -----------------------------------------------------
 
-		for opr in project_oprs:
+		for opr in group_oprs:
 
 			region_name = opr.get("region") or "Not Specified"
+			workflow_name = opr.get("workflow_state") or "Not Specified"
 
-			if region_name not in project_regions:
-				project_regions.append(region_name)
+			if region_name not in group_regions:
+				group_regions.append(region_name)
+
+			if workflow_name not in group_workflow_states:
+				group_workflow_states.append(workflow_name)
 
 			for fieldname in numeric_fields:
 
 				value = opr.get(fieldname) or 0.0
 
-				project_total[fieldname] = project_total.get(fieldname, 0.0) + value
+				group_total[fieldname] = group_total.get(fieldname, 0.0) + value
 				grand_total[fieldname] = grand_total.get(fieldname, 0.0) + value
 
 		# -----------------------------------------------------
-		# DETERMINE PROJECT REGION DISPLAY
+		# DETERMINE GROUP SUMMARY DISPLAY VALUES
 		# -----------------------------------------------------
 
-		project_region = ""
+		group_region = ""
+		if len(group_regions) == 1:
+			group_region = group_regions[0]
+		if len(group_regions) > 1:
+			group_region = "Multiple"
 
-		if len(project_regions) == 1:
-			project_region = project_regions[0]
-
-		if len(project_regions) > 1:
-			project_region = "Multiple"
+		group_workflow_state = ""
+		if len(group_workflow_states) == 1:
+			group_workflow_state = group_workflow_states[0]
+		if len(group_workflow_states) > 1:
+			group_workflow_state = "Multiple"
 
 		# -----------------------------------------------------
-		# SINGLE PROJECT ROW WITH TOTALS
+		# GROUP SUMMARY ROW
 		# -----------------------------------------------------
 
-		project_row = {
-			"project_name": project_name,
-			"region": project_region,
-			"opr_name": "",
-			"product_type": "",
-			"indent": 0,
-			"row_type": "project_total",
-		}
+		if view_mode in ("Summary + Details", "Summary Only"):
 
-		for fieldname in numeric_fields:
-			project_row[fieldname] = project_total.get(fieldname, 0.0)
+			group_row = {
+				"group_name": group_name,
+				"related_name": "",
+				"region": group_region,
+				"workflow_state": group_workflow_state,
+				"opr_name": "",
+				"product_type": "",
+				"indent": 0,
+				"row_type": "group_total",
+			}
 
-		rows.append(project_row)
+			for fieldname in numeric_fields:
+				group_row[fieldname] = group_total.get(fieldname, 0.0)
+
+			rows.append(group_row)
 
 		# -----------------------------------------------------
 		# OPR DETAIL ROWS
 		# -----------------------------------------------------
 
-		for opr in project_oprs:
+		if view_mode in ("Summary + Details", "Details Only"):
 
-			detail_row = {
-				"project_name": "",
-				"region": opr.get("region"),
-				"opr_name": opr.get("opr_name"),
-				"product_type": opr.get("product_type"),
-				"indent": 1,
-				"row_type": "opr",
-			}
+			for opr in group_oprs:
 
-			for fieldname in numeric_fields:
-				detail_row[fieldname] = opr.get(fieldname) or 0.0
+				if group_by == "Customer":
+					related_name = opr.get("project") or "Project Not Specified"
+				else:
+					related_name = opr.get("customer_name") or "Customer Not Specified"
 
-			rows.append(detail_row)
+				# When there's no summary row to introduce the group,
+				# show the group name inline on every detail row.
+				detail_group_name = group_name if view_mode == "Details Only" else ""
+
+				detail_row = {
+					"group_name": detail_group_name,
+					"related_name": related_name,
+					"region": opr.get("region"),
+					"workflow_state": opr.get("workflow_state"),
+					"opr_name": opr.get("opr_name"),
+					"product_type": opr.get("product_type"),
+					"indent": 1,
+					"row_type": "opr",
+				}
+
+				for fieldname in numeric_fields:
+					detail_row[fieldname] = opr.get(fieldname) or 0.0
+
+				rows.append(detail_row)
 
 	# =========================================================
 	# GRAND TOTAL
 	# =========================================================
 
 	grand_total_row = {
-		"project_name": "Grand Total",
+		"group_name": "Grand Total",
+		"related_name": "",
 		"region": "",
+		"workflow_state": "",
 		"opr_name": "",
 		"product_type": "",
 		"indent": 0,
@@ -385,19 +431,34 @@ def get_data(filters):
 	return rows
 
 
-def get_columns():
+def get_columns(group_by):
+	group_label = "Customer" if group_by == "Customer" else "Project"
+	related_label = "Project" if group_by == "Customer" else "Customer"
+
 	return [
 		{
-			"label": "Project",
-			"fieldname": "project_name",
+			"label": group_label,
+			"fieldname": "group_name",
 			"fieldtype": "Data",
-			"width": 300,
+			"width": 280,
+		},
+		{
+			"label": related_label,
+			"fieldname": "related_name",
+			"fieldtype": "Data",
+			"width": 250,
 		},
 		{
 			"label": "Region",
 			"fieldname": "region",
 			"fieldtype": "Data",
 			"width": 120,
+		},
+		{
+			"label": "Workflow State",
+			"fieldname": "workflow_state",
+			"fieldtype": "Data",
+			"width": 145,
 		},
 		{
 			"label": "OPR #",

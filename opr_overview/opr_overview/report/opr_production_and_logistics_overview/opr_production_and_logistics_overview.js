@@ -1,12 +1,16 @@
-// Column order must match get_columns() in opr_production_logistics_overview.py
-const OPR_FROZEN_FIELDS = ["project_name", "region"];
+// Column order must match get_columns() in opr_production_and_logistics_overview.py
+// group_name/related_name swap between Project/Customer depending on the
+// "Group By" filter, but stay the first two columns either way.
+const OPR_FROZEN_FIELDS = ["group_name", "related_name"];
 
 // Row 1: broad section headers (merged & centred)
 const OPR_TOP_GROUPS = [
-	{ label: "", fields: ["project_name", "region"] },
+	{ label: "", fields: ["group_name", "related_name"] },
 	{
 		label: "OPR Info",
 		fields: [
+			"region",
+			"workflow_state",
 			"opr_name",
 			"product_type",
 			"total_sqm",
@@ -42,7 +46,9 @@ const OPR_TOP_GROUPS = [
 
 // Row 2: SQM/Nos pair headers (merged & centred)
 const OPR_SUB_GROUPS = [
-	{ label: "", fields: ["project_name", "region"] },
+	{ label: "", fields: ["group_name", "related_name"] },
+	{ label: "", fields: ["region"] },
+	{ label: "", fields: ["workflow_state"] },
 	{ label: "", fields: ["opr_name"] },
 	{ label: "", fields: ["product_type"] },
 	{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
@@ -113,7 +119,13 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 			fieldname: "region",
 			label: __("Region"),
 			fieldtype: "Link",
-			options: "Region",
+			options: "Territory",
+		},
+		{
+			fieldname: "workflow_state",
+			label: __("Workflow State"),
+			fieldtype: "Link",
+			options: "Workflow State",
 		},
 		{
 			fieldname: "active_only",
@@ -125,6 +137,20 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 			label: __("Pending Only"),
 			fieldtype: "Check",
 		},
+		{
+			fieldname: "group_by",
+			label: __("Group By"),
+			fieldtype: "Select",
+			options: ["Project", "Customer"],
+			default: "Project",
+		},
+		{
+			fieldname: "view_mode",
+			label: __("View Mode"),
+			fieldtype: "Select",
+			options: ["Summary + Details", "Summary Only", "Details Only"],
+			default: "Summary + Details",
+		},
 	],
 
 	get_datatable_options(options) {
@@ -135,7 +161,7 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 
 	formatter(value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);
-		if (data && (data.row_type === "project_total" || data.row_type === "grand_total")) {
+		if (data && (data.row_type === "group_total" || data.row_type === "grand_total")) {
 			value = `<b>${value}</b>`;
 		}
 		return value;
@@ -201,17 +227,17 @@ function setup_total_row_colour(datatable) {
 	const rows = datatable.datamanager && datatable.datamanager.data;
 	if (!rows) return;
 
-	const project_total_rows = [];
+	const group_total_rows = [];
 	const grand_total_rows = [];
 
 	rows.forEach((row, i) => {
-		if (row.row_type === "project_total") project_total_rows.push(i);
+		if (row.row_type === "group_total") group_total_rows.push(i);
 		if (row.row_type === "grand_total") grand_total_rows.push(i);
 	});
 
-	if (project_total_rows.length) {
+	if (group_total_rows.length) {
 		datatable.style.setStyle(
-			project_total_rows.map((i) => `.dt-row-${i}`).join(","),
+			group_total_rows.map((i) => `.dt-row-${i}`).join(","),
 			{ "background-color": "var(--dt-header-cell-bg)" }
 		);
 	}
