@@ -169,17 +169,22 @@ function setup_header_wrap() {
 	const style = document.createElement("style");
 	style.id = styleId;
 	style.textContent = `
+		.dt-header .dt-cell {
+			height: auto !important;
+			min-height: 48px;
+		}
 		.dt-header .dt-cell__content {
 			white-space: normal !important;
 			word-break: break-word !important;
 			line-height: 1.3 !important;
 			height: auto !important;
-			padding-top: 4px !important;
-			padding-bottom: 4px !important;
+			min-height: 48px;
+			padding-top: 6px !important;
+			padding-bottom: 6px !important;
 		}
 		.dt-header .dt-row {
 			height: auto !important;
-			min-height: 34px;
+			min-height: 48px;
 		}
 		.opr-group-header__content {
 			display: flex !important;
