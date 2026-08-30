@@ -1,78 +1,142 @@
 // Column order must match get_columns() in opr_production_and_logistics_overview.py
-// group_name/related_name swap between Project/Customer depending on the
-// "Group By" filter, but stay the first two columns either way.
-const OPR_FROZEN_FIELDS = ["group_name", "related_name"];
+// Customer and Project are always the first two columns, in that fixed order,
+// regardless of the "Group By" filter (which only controls subtotal grouping).
+const OPR_FROZEN_FIELDS = ["customer_name", "project"];
 
-// Row 1: broad section headers (merged & centred)
-const OPR_TOP_GROUPS = [
-	{ label: "", fields: ["group_name", "related_name"] },
-	{
-		label: "OPR Info",
-		fields: [
-			"region",
-			"workflow_state",
-			"opr_name",
-			"product_type",
-			"total_sqm",
-			"total_no",
-			"total_straight_sqm",
-			"total_straight_nos",
-			"total_fittings_sqm",
-			"total_fittings_nos",
-		],
-	},
-	{
-		label: "Production Info",
-		fields: [
-			"total_sqm_produced",
-			"total_nos_produced",
-			"remaining_sqm_production",
-			"remaining_nos_production",
-		],
-	},
-	{
-		label: "Logistics Info",
-		fields: [
-			"total_sqm_delivered",
-			"total_nos_delivered",
-			"remaining_sqm_delivery",
-			"remaining_nos_delivery",
-			"remaining_produced_sqm_to_delivered",
-			"remaining_produced_no_to_delivered",
-			"remaining_value",
-		],
-	},
-];
+// Merged header definitions, one set per "View Mode". Row 1 = broad section
+// headers, Row 2 = SQM/Nos pair headers. Field lists must match get_columns()
+// for that view exactly (same fields, same order).
+const OPR_IDENTITY_FIELDS = ["customer_name", "project", "region", "opr_name"];
 
-// Row 2: SQM/Nos pair headers (merged & centred)
-const OPR_SUB_GROUPS = [
-	{ label: "", fields: ["group_name", "related_name"] },
-	{ label: "", fields: ["region"] },
-	{ label: "", fields: ["workflow_state"] },
-	{ label: "", fields: ["opr_name"] },
-	{ label: "", fields: ["product_type"] },
-	{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
-	{ label: "Total STS", fields: ["total_straight_sqm", "total_straight_nos"] },
-	{ label: "Total FTS", fields: ["total_fittings_sqm", "total_fittings_nos"] },
-	{ label: "Produced Qty", fields: ["total_sqm_produced", "total_nos_produced"] },
-	{
-		label: "Balance Production Qty",
-		fields: ["remaining_sqm_production", "remaining_nos_production"],
-	},
-	{ label: "Delivered Qty", fields: ["total_sqm_delivered", "total_nos_delivered"] },
-	{
-		label: "Balance Delivery Qty",
-		fields: ["remaining_sqm_delivery", "remaining_nos_delivery"],
-	},
-	{
-		label: "Ready for Dispatch",
-		fields: [
-			"remaining_produced_sqm_to_delivered",
-			"remaining_produced_no_to_delivered",
+const OPR_HEADER_GROUPS = {
+	Logistics: {
+		top: [
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type"] },
+			{ label: "OPR Info", fields: ["total_sqm", "total_no"] },
+			{
+				label: "Logistics Info",
+				fields: [
+					"total_sqm_delivered",
+					"total_nos_delivered",
+					"remaining_sqm_delivery",
+					"remaining_nos_delivery",
+					"remaining_produced_sqm_to_delivered",
+					"remaining_produced_no_to_delivered",
+				],
+			},
+			{ label: "", fields: ["workflow_state"] },
+		],
+		sub: [
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type", "workflow_state"] },
+			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
+			{ label: "Delivered Qty", fields: ["total_sqm_delivered", "total_nos_delivered"] },
+			{ label: "Balance Delivery Qty", fields: ["remaining_sqm_delivery", "remaining_nos_delivery"] },
+			{
+				label: "Ready for Dispatch",
+				fields: ["remaining_produced_sqm_to_delivered", "remaining_produced_no_to_delivered"],
+			},
 		],
 	},
-	{ label: "", fields: ["remaining_value"] },
-];
+
+	Production: {
+		top: [
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type", "committed_end_date"] },
+			{
+				label: "OPR Info",
+				fields: [
+					"total_sqm",
+					"total_no",
+					"total_straight_sqm",
+					"total_straight_nos",
+					"total_fittings_sqm",
+					"total_fittings_nos",
+				],
+			},
+			{
+				label: "Manufacturing Info",
+				fields: [
+					"total_sqm_produced",
+					"total_nos_produced",
+					"remaining_sqm_production",
+					"remaining_nos_production",
+				],
+			},
+			{ label: "", fields: ["workflow_state"] },
+		],
+		sub: [
+			{
+				label: "",
+				fields: [...OPR_IDENTITY_FIELDS, "product_type", "committed_end_date", "workflow_state"],
+			},
+			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
+			{ label: "Total STS", fields: ["total_straight_sqm", "total_straight_nos"] },
+			{ label: "Total FTS", fields: ["total_fittings_sqm", "total_fittings_nos"] },
+			{ label: "Produced Qty", fields: ["total_sqm_produced", "total_nos_produced"] },
+			{
+				label: "Balance Production Qty",
+				fields: ["remaining_sqm_production", "remaining_nos_production"],
+			},
+		],
+	},
+
+	Operations: {
+		top: [
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type"] },
+			{
+				label: "OPR Info",
+				fields: [
+					"total_sqm",
+					"total_no",
+					"total_straight_sqm",
+					"total_straight_nos",
+					"total_fittings_sqm",
+					"total_fittings_nos",
+				],
+			},
+			{
+				label: "Manufacturing Info",
+				fields: [
+					"total_sqm_produced",
+					"total_nos_produced",
+					"remaining_sqm_production",
+					"remaining_nos_production",
+				],
+			},
+			{
+				label: "Logistics Info",
+				fields: [
+					"total_sqm_delivered",
+					"total_nos_delivered",
+					"remaining_sqm_delivery",
+					"remaining_nos_delivery",
+					"remaining_produced_sqm_to_delivered",
+					"remaining_produced_no_to_delivered",
+				],
+			},
+			{ label: "", fields: ["workflow_state"] },
+		],
+		sub: [
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type", "workflow_state"] },
+			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
+			{ label: "Total STS", fields: ["total_straight_sqm", "total_straight_nos"] },
+			{ label: "Total FTS", fields: ["total_fittings_sqm", "total_fittings_nos"] },
+			{ label: "Produced Qty", fields: ["total_sqm_produced", "total_nos_produced"] },
+			{
+				label: "Balance Production Qty",
+				fields: ["remaining_sqm_production", "remaining_nos_production"],
+			},
+			{ label: "Delivered Qty", fields: ["total_sqm_delivered", "total_nos_delivered"] },
+			{
+				label: "Balance Delivery Qty",
+				fields: ["remaining_sqm_delivery", "remaining_nos_delivery"],
+			},
+			{
+				label: "Ready for Dispatch",
+				fields: ["remaining_produced_sqm_to_delivered", "remaining_produced_no_to_delivered"],
+			},
+		],
+	},
+};
 
 frappe.query_reports["OPR Production and Logistics Overview"] = {
 	filters: [
@@ -131,6 +195,7 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 			fieldname: "active_only",
 			label: __("Active Only"),
 			fieldtype: "Check",
+			default: 1,
 		},
 		{
 			fieldname: "pending_only",
@@ -148,13 +213,13 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 			fieldname: "view_mode",
 			label: __("View Mode"),
 			fieldtype: "Select",
-			options: ["Summary + Details", "Summary Only", "Details Only"],
-			default: "Summary + Details",
+			options: ["Logistics", "Production", "Operations"],
+			default: "Logistics",
 		},
 	],
 
 	get_datatable_options(options) {
-		// Predictable column indices (Project = 0, Region = 1, ...) for freezing.
+		// Predictable column indices (Customer = 0, Project = 1, ...) for freezing.
 		options.serialNoColumn = false;
 		return options;
 	},
@@ -168,11 +233,12 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 	},
 
 	after_datatable_render(datatable) {
+		const view_mode = frappe.query_report.get_filter_value("view_mode") || "Logistics";
 		setup_header_wrap();
 		setup_total_row_colour(datatable);
-		setup_group_headers(datatable);
+		setup_group_headers(datatable, view_mode);
 		setup_freeze_toggle(datatable);
-		bind_resize_handler(datatable);
+		bind_resize_handler(datatable, view_mode);
 	},
 
 	onload(report) {
@@ -198,6 +264,7 @@ function setup_header_wrap() {
 		.dt-header .dt-cell {
 			height: auto !important;
 			min-height: 48px;
+			background-color: #dbeeff !important;
 		}
 		.dt-header .dt-cell__content {
 			white-space: normal !important;
@@ -207,10 +274,14 @@ function setup_header_wrap() {
 			min-height: 48px;
 			padding-top: 6px !important;
 			padding-bottom: 6px !important;
+			color: #1a1a1a !important;
 		}
 		.dt-header .dt-row {
 			height: auto !important;
 			min-height: 48px;
+		}
+		.opr-group-header-row .dt-cell {
+			background-color: #cfe4fb !important;
 		}
 		.opr-group-header__content {
 			display: flex !important;
@@ -218,6 +289,7 @@ function setup_header_wrap() {
 			justify-content: center;
 			text-align: center;
 			font-weight: 600;
+			color: #1a1a1a !important;
 		}
 	`;
 	document.head.appendChild(style);
@@ -290,9 +362,11 @@ function build_group_row_html(groups, fieldToCol, colWidths, rowClass) {
 	return `<div class="dt-row ${rowClass}">${cells.join("")}</div>`;
 }
 
-function setup_group_headers(datatable) {
+function setup_group_headers(datatable, view_mode) {
 	// remove any group header rows from a previous render
 	datatable.header.querySelectorAll(".opr-group-header-row").forEach((el) => el.remove());
+
+	const groups = OPR_HEADER_GROUPS[view_mode] || OPR_HEADER_GROUPS.Logistics;
 
 	const headerInner = datatable.header.querySelector(":scope > div") || datatable.header;
 	const headerRow = headerInner.querySelector(".dt-row-header");
@@ -302,13 +376,13 @@ function setup_group_headers(datatable) {
 	const colWidths = get_column_widths(datatable);
 
 	const topRowHtml = build_group_row_html(
-		OPR_TOP_GROUPS,
+		groups.top,
 		fieldToCol,
 		colWidths,
 		"opr-group-header-row opr-group-header-row--top"
 	);
 	const subRowHtml = build_group_row_html(
-		OPR_SUB_GROUPS,
+		groups.sub,
 		fieldToCol,
 		colWidths,
 		"opr-group-header-row opr-group-header-row--sub"
@@ -400,14 +474,14 @@ function remove_freeze(datatable) {
 	});
 }
 
-function bind_resize_handler(datatable) {
+function bind_resize_handler(datatable, view_mode) {
 	if (datatable._opr_resize_bound) return;
 	datatable._opr_resize_bound = true;
 
 	window.addEventListener(
 		"resize",
 		frappe.utils.debounce(() => {
-			setup_group_headers(datatable);
+			setup_group_headers(datatable, view_mode);
 			if (datatable._opr_freeze_on) {
 				remove_freeze(datatable);
 				apply_freeze(datatable);
@@ -417,7 +491,7 @@ function bind_resize_handler(datatable) {
 }
 
 function setup_freeze_toggle(datatable) {
-	// Freeze the first 2 columns (Project, Region) by default; user can
+	// Freeze the first 2 columns (Customer, Project) by default; user can
 	// toggle it off/on via the "Toggle Freeze Columns" button. Re-applied
 	// (not just left as-is) on every render since column widths can change.
 	const was_on = datatable._opr_freeze_on !== false;
