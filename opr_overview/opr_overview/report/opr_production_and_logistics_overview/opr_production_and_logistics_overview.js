@@ -263,24 +263,27 @@ function setup_header_wrap() {
 	style.textContent = `
 		.dt-header .dt-cell {
 			height: auto !important;
-			min-height: 48px;
+			overflow: visible !important;
 			background-color: #dbeeff !important;
 		}
 		.dt-header .dt-cell__content {
 			white-space: normal !important;
 			word-break: break-word !important;
-			line-height: 1.3 !important;
+			line-height: 1.35 !important;
 			height: auto !important;
-			min-height: 48px;
-			padding-top: 6px !important;
-			padding-bottom: 6px !important;
+			overflow: visible !important;
+			padding-top: 8px !important;
+			padding-bottom: 8px !important;
 			color: #1a1a1a !important;
 		}
 		.dt-header .dt-row {
 			height: auto !important;
-			min-height: 48px;
+			min-height: 40px;
 		}
-		.opr-group-header-row .dt-cell {
+		/* Only the merged header cells that actually carry a label
+		   ("OPR Info", "Total OPR Qty", ...) get the highlight -
+		   blank spacer cells stay uncoloured. */
+		.opr-group-header-row .opr-group-header-cell--labeled {
 			background-color: #cfe4fb !important;
 		}
 		.opr-group-header__content {
@@ -310,7 +313,7 @@ function setup_total_row_colour(datatable) {
 	if (group_total_rows.length) {
 		datatable.style.setStyle(
 			group_total_rows.map((i) => `.dt-row-${i}`).join(","),
-			{ "background-color": "var(--dt-header-cell-bg)" }
+			{ "background-color": "#eaf4fd" }
 		);
 	}
 
@@ -318,7 +321,7 @@ function setup_total_row_colour(datatable) {
 		datatable.style.setStyle(
 			grand_total_rows.map((i) => `.dt-row-${i}`).join(","),
 			{
-				"background-color": "var(--dt-header-cell-bg)",
+				"background-color": "#cfe4fb",
 				"border-top": "2px solid var(--dt-border-color)",
 			}
 		);
@@ -350,9 +353,12 @@ function build_group_row_html(groups, fieldToCol, colWidths, rowClass) {
 		}, 0);
 
 		const is_frozen_cell = idx === 0;
+		const is_labeled = !!(group.label && group.label.trim());
 
 		return `
-			<div class="dt-cell dt-cell--header ${is_frozen_cell ? "opr-group-freeze-cell" : ""}"
+			<div class="dt-cell dt-cell--header ${is_frozen_cell ? "opr-group-freeze-cell" : ""} ${
+			is_labeled ? "opr-group-header-cell--labeled" : ""
+		}"
 				style="width:${width}px;min-width:${width}px;max-width:${width}px;">
 				<div class="dt-cell__content opr-group-header__content">${frappe.utils.escape_html(group.label)}</div>
 			</div>
