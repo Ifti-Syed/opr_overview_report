@@ -234,11 +234,12 @@ frappe.query_reports["OPR Production and Logistics Overview"] = {
 
 	after_datatable_render(datatable) {
 		const view_mode = frappe.query_report.get_filter_value("view_mode") || "Logistics";
+		datatable._opr_view_mode = view_mode;
 		setup_header_wrap();
-		setup_total_row_colour(datatable);
+		setup_total_row_style(datatable);
 		setup_group_headers(datatable, view_mode);
 		setup_freeze_toggle(datatable);
-		bind_resize_handler(datatable, view_mode);
+		bind_resize_handler(datatable);
 	},
 
 	onload(report) {
@@ -264,7 +265,6 @@ function setup_header_wrap() {
 		.dt-header .dt-cell {
 			height: auto !important;
 			overflow: visible !important;
-			background-color: #dbeeff !important;
 		}
 		.dt-header .dt-cell__content {
 			white-space: normal !important;
@@ -274,17 +274,13 @@ function setup_header_wrap() {
 			overflow: visible !important;
 			padding-top: 8px !important;
 			padding-bottom: 8px !important;
-			color: #1a1a1a !important;
 		}
 		.dt-header .dt-row {
 			height: auto !important;
 			min-height: 40px;
 		}
-		/* Only the merged header cells that actually carry a label
-		   ("OPR Info", "Total OPR Qty", ...) get the highlight -
-		   blank spacer cells stay uncoloured. */
-		.opr-group-header-row .opr-group-header-cell--labeled {
-			background-color: #cfe4fb !important;
+		.opr-group-header-row {
+			border-bottom: 1px solid var(--dt-border-color);
 		}
 		.opr-group-header__content {
 			display: flex !important;
@@ -292,13 +288,12 @@ function setup_header_wrap() {
 			justify-content: center;
 			text-align: center;
 			font-weight: 600;
-			color: #1a1a1a !important;
 		}
 	`;
 	document.head.appendChild(style);
 }
 
-function setup_total_row_colour(datatable) {
+function setup_total_row_style(datatable) {
 	const rows = datatable.datamanager && datatable.datamanager.data;
 	if (!rows) return;
 
@@ -310,20 +305,19 @@ function setup_total_row_colour(datatable) {
 		if (row.row_type === "grand_total") grand_total_rows.push(i);
 	});
 
+	// No fill colour - bold text (via the formatter) plus a plain border
+	// is enough to mark totals without a highlight.
 	if (group_total_rows.length) {
 		datatable.style.setStyle(
 			group_total_rows.map((i) => `.dt-row-${i}`).join(","),
-			{ "background-color": "#eaf4fd" }
+			{ "border-top": "1px solid var(--dt-border-color)" }
 		);
 	}
 
 	if (grand_total_rows.length) {
 		datatable.style.setStyle(
 			grand_total_rows.map((i) => `.dt-row-${i}`).join(","),
-			{
-				"background-color": "#cfe4fb",
-				"border-top": "2px solid var(--dt-border-color)",
-			}
+			{ "border-top": "2px solid var(--dt-border-color)" }
 		);
 	}
 }
@@ -480,14 +474,20 @@ function remove_freeze(datatable) {
 	});
 }
 
-function bind_resize_handler(datatable, view_mode) {
+function bind_resize_handler(datatable) {
 	if (datatable._opr_resize_bound) return;
 	datatable._opr_resize_bound = true;
 
 	window.addEventListener(
 		"resize",
 		frappe.utils.debounce(() => {
-			setup_group_headers(datatable, view_mode);
+			// Read the view mode fresh each time (set on every
+			// after_datatable_render) instead of closing over the value
+			// from whichever render first bound this listener - the
+			// datatable instance is reused across "View Mode" filter
+			// changes, so a stale closure would rebuild the merged
+			// header for the wrong view.
+			setup_group_headers(datatable, datatable._opr_view_mode || "Logistics");
 			if (datatable._opr_freeze_on) {
 				remove_freeze(datatable);
 				apply_freeze(datatable);
