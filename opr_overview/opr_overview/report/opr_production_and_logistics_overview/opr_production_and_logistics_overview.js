@@ -27,7 +27,7 @@ const OPR_HEADER_GROUPS = {
 			{ label: "", fields: ["workflow_state"] },
 		],
 		sub: [
-			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type", "workflow_state"] },
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type"] },
 			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
 			{ label: "Delivered Qty", fields: ["total_sqm_delivered", "total_nos_delivered"] },
 			{ label: "Balance Delivery Qty", fields: ["remaining_sqm_delivery", "remaining_nos_delivery"] },
@@ -35,6 +35,7 @@ const OPR_HEADER_GROUPS = {
 				label: "Ready for Dispatch",
 				fields: ["remaining_produced_sqm_to_delivered", "remaining_produced_no_to_delivered"],
 			},
+			{ label: "", fields: ["workflow_state"] },
 		],
 	},
 
@@ -66,7 +67,7 @@ const OPR_HEADER_GROUPS = {
 		sub: [
 			{
 				label: "",
-				fields: [...OPR_IDENTITY_FIELDS, "product_type", "committed_end_date", "workflow_state"],
+				fields: [...OPR_IDENTITY_FIELDS, "product_type", "committed_end_date"],
 			},
 			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
 			{ label: "Total STS", fields: ["total_straight_sqm", "total_straight_nos"] },
@@ -76,6 +77,7 @@ const OPR_HEADER_GROUPS = {
 				label: "Balance Production Qty",
 				fields: ["remaining_sqm_production", "remaining_nos_production"],
 			},
+			{ label: "", fields: ["workflow_state"] },
 		],
 	},
 
@@ -116,7 +118,7 @@ const OPR_HEADER_GROUPS = {
 			{ label: "", fields: ["workflow_state"] },
 		],
 		sub: [
-			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type", "workflow_state"] },
+			{ label: "", fields: [...OPR_IDENTITY_FIELDS, "product_type"] },
 			{ label: "Total OPR Qty", fields: ["total_sqm", "total_no"] },
 			{ label: "Total STS", fields: ["total_straight_sqm", "total_straight_nos"] },
 			{ label: "Total FTS", fields: ["total_fittings_sqm", "total_fittings_nos"] },
@@ -134,6 +136,7 @@ const OPR_HEADER_GROUPS = {
 				label: "Ready for Dispatch",
 				fields: ["remaining_produced_sqm_to_delivered", "remaining_produced_no_to_delivered"],
 			},
+			{ label: "", fields: ["workflow_state"] },
 		],
 	},
 };
