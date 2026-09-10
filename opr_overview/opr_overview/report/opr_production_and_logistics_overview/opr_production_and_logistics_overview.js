@@ -1,7 +1,7 @@
 // Column order must match get_columns() in opr_production_and_logistics_overview.py
 // Customer and Project are always the first two columns, in that fixed order,
 // regardless of the "Group By" filter (which only controls subtotal grouping).
-const OPR_FROZEN_FIELDS = ["customer_name", "project"];
+const OPR_FROZEN_FIELDS = ["customer_name", "project", "region", "opr_name", "product_type"];
 
 // Merged header definitions, one set per "View Mode". Row 1 = broad section
 // headers, Row 2 = SQM/Nos pair headers. Field lists must match get_columns()
@@ -277,6 +277,8 @@ function setup_header_wrap() {
 			overflow: visible !important;
 			padding-top: 8px !important;
 			padding-bottom: 8px !important;
+			text-align: center !important;
+			justify-content: center !important;
 		}
 		.dt-header .dt-row {
 			height: auto !important;
@@ -284,13 +286,14 @@ function setup_header_wrap() {
 		}
 		.opr-group-header-row {
 			border-bottom: 1px solid var(--dt-border-color);
+			font-weight: bold;
 		}
 		.opr-group-header__content {
 			display: flex !important;
 			align-items: center;
 			justify-content: center;
 			text-align: center;
-			font-weight: 600;
+			font-weight: bold;
 		}
 	`;
 	document.head.appendChild(style);
